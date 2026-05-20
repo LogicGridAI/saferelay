@@ -9,8 +9,8 @@
 SafePaste redacts sensitive data in your Linux pipelines before it reaches AI tools, log aggregators, or external services.
 BEFORE                                    AFTER (SafePaste)
 ─────────────────────────────────         ─────────────────────────────────
-OPENAI_API_KEY=[ENV_VALUE_1]
-AWS_ACCESS_KEY_ID=[ENV_VALUE_2]
+OPENAI_API_KEY=sk-proj-abc...xyz
+AWS_ACCESS_KEY_ID=AKIA1234ABCD
 Authorization: Bearer eyJhb...            Authorization: Bearer [BEARER_1]
 Server: [IP_1]                      Server: [DEVSEC_1]
 SSN: [US_SSN_1]                          SSN: [US_SSN_1]
