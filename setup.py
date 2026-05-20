@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="safepaste-enterprise",
-    version="3.4.6",
+    version="3.4.7",
     description="Zero-trust DLP for Linux pipelines — 35+ threat patterns across 8+ countries",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
