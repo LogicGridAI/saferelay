@@ -1,0 +1,80 @@
+Metadata-Version: 2.1
+Name: safepaste-enterprise
+Version: 3.4.1
+Summary: Zero-trust DLP for Linux pipelines — 35+ threat patterns across 8+ countries
+Home-page: https://safepaste.app
+Author: LogicGrid AI, LLC
+Author-email: support@logicgrid.ai
+License: Proprietary
+Keywords: ai-safety api-keys cli dlp pii redaction security zero-trust
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Security
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Provides-Extra: redis
+
+# SafePaste Enterprise CLI
+
+**Zero-Trust Data Loss Prevention (DLP) for Linux pipelines.** SafePaste operates natively on standard I/O streams (`stdin` to `stdout`), automatically intercepting and redacting sensitive data (IPs, AWS Keys, Credit Cards, NINs, SSNs) before it leaves your machine or gets ingested by AI models.
+
+## Installation
+Drop the compiled binary into your local bin path for global access:
+```bash
+sudo mv safepaste /usr/local/bin/
+sudo chmod +x /usr/local/bin/safepaste
+Basic Usage (The Unix Pipeline)
+SafePaste is designed to be piped into standard Linux workflows.
+
+Masking Logs:
+
+Bash
+cat /var/log/syslog | safepaste > clean.log
+docker logs my-app | safepaste > clean-docker.log
+Sensitive data is replaced with cryptographically secure placeholders (e.g., [DEVSEC_a3f9b2c1]).
+
+Unmasking Logs (Pro Only):
+When the AI returns an analysis, pipe it back through SafePaste to restore the original data using your local RAM vault:
+
+Bash
+cat ai_response.txt | safepaste --unmask
+Configuration & Management
+SafePaste stores its configuration and vault entirely locally in ~/.safepaste/. Manage your Zero-Trust policies directly from the terminal:
+
+safepaste --status : View your current license tier and active security toggles.
+
+safepaste --toggle-devsec : Enable/disable DevSec mode (IPs, MACs, API Keys).
+
+safepaste --toggle-fintech : Enable/disable FinTech Shield (Credit Cards, SSNs, IBANs, NINs).
+
+safepaste --add-nda "ProjectNova" : Add a custom, proprietary keyword to be aggressively redacted.
+
+safepaste --remove-nda "ProjectNova" : Remove a custom keyword.
+
+Licensing (Freemium vs. Pro)
+The Free tier permanently redacts IP addresses and standard API keys.
+To unlock the reversible vault, FinTech Shield, and Custom NDAs, activate your Gumroad LogicGrid Pro License:
+
+Bash
+safepaste --unlock "YOUR_GUMROAD_LICENSE_KEY"
+Enterprise Deployment (Docker & Kubernetes)
+safepaste operates natively on standard I/O streams, making it perfectly suited for containerized pipelines, DaemonSets, and Sidecars.
+
+Because container filesystems are ephemeral, running safepaste natively inside a pod will destroy the vault mapping upon container restart. To maintain persistent, distributed redaction state across a multi-node cluster, you have two native options:
+
+Option 1: Persistent Volumes (Simple)
+Mount a PVC to the default vault directory (~/.safepaste/) inside your sidecar container.
+
+Option 2: Distributed Redis Cache (Enterprise/AIOps)
+For high-throughput, multi-pod clusters, safepaste natively supports Redis.
+
+Ensure the redis module is installed (pip install redis).
+
+Inject your Redis connection string via environment variable:
+
+Bash
+export SAFEPASTE_REDIS_URL="redis://:password@redis-master.default.svc.cluster.local:6379/0"
+When this variable is detected, safepaste entirely bypasses the local disk and instantly syncs its zero-trust mappings to your centralized Redis cache, allowing any authorized pod in the cluster to mask or unmask logs dynamically.

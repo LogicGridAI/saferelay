@@ -1,0 +1,10 @@
+README.md
+setup.py
+safepaste/__init__.py
+safepaste/__main__.py
+safepaste_enterprise.egg-info/PKG-INFO
+safepaste_enterprise.egg-info/SOURCES.txt
+safepaste_enterprise.egg-info/dependency_links.txt
+safepaste_enterprise.egg-info/entry_points.txt
+safepaste_enterprise.egg-info/requires.txt
+safepaste_enterprise.egg-info/top_level.txt
