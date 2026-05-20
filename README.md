@@ -15,6 +15,14 @@ Authorization: Bearer eyJhb...            Authorization: Bearer [BEARER_1]
 Server: [IP_1]                      Server: [DEVSEC_1]
 SSN: [US_SSN_1]                          SSN: [US_SSN_1]
 
+## Get a License
+
+| Tier | Price | Get it |
+|------|-------|--------|
+| Free | $0 | [Chrome Web Store](https://chromewebstore.google.com/detail/safepaste-enterprise/ibdihcmplmiekaoofbcgeebkleafbkcn) |
+| Pro | $7.99/mo or $59/yr | [safepaste.app/#pricing](https://safepaste.app/#pricing) |
+| SafeRelay Suite | $99 one-time | [safepaste.app/saferelay](https://safepaste.app/saferelay) |
+
 ## Installation
 
 ```bash

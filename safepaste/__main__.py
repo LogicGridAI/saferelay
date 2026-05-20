@@ -6,7 +6,7 @@ Free tier: IPv4 + API-style tokens only → [DEVSEC_n], no vault.
 Pro tier: License-verified; vault persisted; full unmask support.
 Shield Packs: DevSec, FinTech, Corporate Identity, Web3, Mission & Civic.
 """
-__version__ = "3.4.3"
+__version__ = "3.4.4"
 from __future__ import annotations
 import argparse
 import json
