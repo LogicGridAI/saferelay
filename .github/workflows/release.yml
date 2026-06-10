@@ -1,4 +1,4 @@
-name: SafePaste Release Pipeline
+name: SafeRelay Release Pipeline
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
       - 'v*'
 
 jobs:
-
   # ── 1. PyPI ────────────────────────────────────────────────────────────────
   publish-pypi:
     name: Publish to PyPI
@@ -16,25 +15,19 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Extract version from tag
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
-
       - name: Bump version in setup.py and __main__.py
         run: |
           sed -i "s/version=\"[0-9.]*\"/version=\"$VERSION\"/" setup.py
-          sed -i "s/__version__ = \"[0-9.]*\"/__version__ = \"$VERSION\"/" safepaste/__main__.py
-
+          sed -i "s/__version__ = \"[0-9.]*\"/__version__ = \"$VERSION\"/" saferelay/__main__.py
       - name: Install build
         run: pip install build
-
       - name: Build wheel
         run: python -m build
-
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
@@ -44,27 +37,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Extract version from tag
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
-
       - name: Bump version in setup.py and __main__.py
         run: |
           sed -i "s/version=\"[0-9.]*\"/version=\"$VERSION\"/" setup.py
-          sed -i "s/__version__ = \"[0-9.]*\"/__version__ = \"$VERSION\"/" safepaste/__main__.py
-
+          sed -i "s/__version__ = \"[0-9.]*\"/__version__ = \"$VERSION\"/" saferelay/__main__.py
       - name: Set up QEMU (for multi-arch)
         uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Build and push multi-arch image
         uses: docker/build-push-action@v5
         with:
@@ -72,12 +59,12 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            logicgridai/safepaste:${{ env.VERSION }}
-            logicgridai/safepaste:latest
+            logicgridai/saferelay:${{ env.VERSION }}
+            logicgridai/saferelay:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ── 3. GitHub Release with Chrome zip ─────────────────────────────────────
+  # ── 3. GitHub Release ─────────────────────────────────────────────────────
   publish-github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
@@ -85,38 +72,34 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-
       - name: Extract version from tag
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
-
       - name: Generate SHA256 checksums
         run: |
           find dist/ -name "*.whl" -exec sha256sum {} \; > checksums.txt 2>/dev/null || echo "No dist files" > checksums.txt
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: SafePaste Enterprise v${{ env.VERSION }}
+          name: SafeRelay Enterprise v${{ env.VERSION }}
           body: |
-            ## SafePaste Enterprise v${{ env.VERSION }}
+            ## SafeRelay Enterprise v${{ env.VERSION }}
 
             ### Distribution
             | Channel | Install |
             |---------|---------|
-            | Chrome Web Store | [Install extension](https://safepaste.app) |
-            | PyPI | `pip install safepaste-enterprise==${{ env.VERSION }}` |
-            | Docker | `docker pull logicgridai/safepaste:${{ env.VERSION }}` |
-            | npm SDK | `npm install @logicgridai/safepaste-sdk` |
+            | Chrome Web Store | [Install extension](https://saferelay.ai) |
+            | PyPI | `pip install saferelay-enterprise==${{ env.VERSION }}` |
+            | Docker | `docker pull logicgridai/saferelay:${{ env.VERSION }}` |
+            | npm SDK | `npm install @logicgridai/saferelay-sdk` |
 
             ### What's protected
             35+ threat patterns across 8+ countries — API keys, PII, crypto wallets, and more.
-
-            → [Full changelog](https://safepaste.app) · [Get a license](https://safepaste.app/#pricing)
+            → [Full changelog](https://saferelay.ai) · [Get a license](https://saferelay.ai/#pricing)
           files: |
             checksums.txt
           generate_release_notes: true
 
-  # ── 4. Notify on completion ───────────────────────────────────────────────
+  # ── 4. Release Summary ────────────────────────────────────────────────────
   notify:
     name: Release Summary
     runs-on: ubuntu-latest
@@ -125,19 +108,16 @@ jobs:
     steps:
       - name: Extract version from tag
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
-
       - name: Print release summary
         run: |
           echo "============================================"
-          echo "SafePaste v$VERSION Release Summary"
+          echo "SafeRelay v$VERSION Release Summary"
           echo "============================================"
           echo "PyPI:    ${{ needs.publish-pypi.result }}"
           echo "Docker:  ${{ needs.publish-docker.result }}"
           echo "Release: ${{ needs.publish-github-release.result }}"
           echo "============================================"
           echo ""
-          echo "Manual steps still needed:"
-          echo "  1. Upload Chrome zip to Web Store"
-          echo "  2. Update npm SDK version if changed"
-          echo "  3. Update Docker Hub description if needed"
+          echo "Chrome + Firefox extensions are handled"
+          echo "separately via saferelay-companion repo."
           echo "============================================"
