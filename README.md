@@ -3,7 +3,7 @@
 > Zero-trust DLP for Linux pipelines — 35+ threat patterns across 8+ countries.
 
 [![PyPI](https://img.shields.io/pypi/v/saferelay-enterprise)](https://pypi.org/project/saferelay-enterprise/)
-[![Docker Hub](https://img.shields.io/badge/Docker-logicgridai%2Fsafepaste-blue)](https://hub.docker.com/r/logicgridai/saferelay)
+[![Docker Hub](https://img.shields.io/badge/Docker-logicgridai%2Fsaferelay-blue)](https://hub.docker.com/r/logicgridai/saferelay)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-blue)](https://saferelay.ai)
 
 SafePaste redacts sensitive data in your Linux pipelines before it reaches AI tools, log aggregators, or external services.
