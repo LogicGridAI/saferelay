@@ -3,7 +3,7 @@ WORKDIR /app
 
 RUN apk add --no-cache gcc musl-dev
 
-COPY safepaste/ /app/saferelay/
+COPY saferelay/ /app/saferelay/
 COPY setup.py /app/
 COPY README.md /app/
 
