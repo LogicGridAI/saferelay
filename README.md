@@ -2,9 +2,9 @@
 
 > Zero-trust DLP for Linux pipelines — 35+ threat patterns across 8+ countries.
 
-[![PyPI](https://img.shields.io/pypi/v/safepaste-enterprise)](https://pypi.org/project/safepaste-enterprise/)
-[![Docker Hub](https://img.shields.io/badge/Docker-logicgridai%2Fsafepaste-blue)](https://hub.docker.com/r/logicgridai/safepaste)
-[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-blue)](https://safepaste.app)
+[![PyPI](https://img.shields.io/pypi/v/saferelay-enterprise)](https://pypi.org/project/saferelay-enterprise/)
+[![Docker Hub](https://img.shields.io/badge/Docker-logicgridai%2Fsafepaste-blue)](https://hub.docker.com/r/logicgridai/saferelay)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-blue)](https://saferelay.ai)
 
 SafePaste redacts sensitive data in your Linux pipelines before it reaches AI tools, log aggregators, or external services.
 BEFORE                                    AFTER (SafePaste)
@@ -19,17 +19,17 @@ SSN: [US_SSN_1]                          SSN: [US_SSN_1]
 
 | Tier | Price | Get it |
 |------|-------|--------|
-| Free | $0 | [Chrome Web Store](https://chromewebstore.google.com/detail/safepaste-enterprise/ibdihcmplmiekaoofbcgeebkleafbkcn) |
-| Pro | $7.99/mo or $59/yr | [safepaste.app/#pricing](https://safepaste.app/#pricing) |
-| SafeRelay Suite | $99 one-time | [safepaste.app/saferelay](https://safepaste.app/saferelay) |
+| Free | $0 | [Chrome Web Store](https://chromewebstore.google.com/detail/saferelay-enterprise/odeoilooelkodahbbdokbollgahdcaag) |
+| Pro | $7.99/mo or $59/yr | [saferelay.ai/#pricing](https://saferelay.ai/#pricing) |
+| SafeRelay Suite | $99 one-time | [saferelay.ai/saferelay](https://saferelay.ai/saferelay) |
 
 ## Installation
 
 ```bash
-pip install safepaste-enterprise
+pip install saferelay-enterprise
 
 # With Redis support (enterprise distributed vault)
-pip install safepaste-enterprise[redis]
+pip install saferelay-enterprise[redis]
 ```
 
 Requires Python 3.9+. No external dependencies for the base install.
@@ -38,17 +38,17 @@ Requires Python 3.9+. No external dependencies for the base install.
 
 ```bash
 # Free tier — mask IPs and API keys
-cat /var/log/app.log | safepaste --mask
+cat /var/log/app.log | saferelay --mask
 
 # Pro tier — full vault with unmask
-docker logs my-app | safepaste --mask > clean.log
-cat ai_response.txt | safepaste --unmask
+docker logs my-app | saferelay --mask > clean.log
+cat ai_response.txt | saferelay --unmask
 
 # Activate Pro
-safepaste --unlock "YOUR-LICENSE-KEY"
+saferelay --unlock "YOUR-LICENSE-KEY"
 
 # Status
-safepaste --status
+saferelay --status
 ```
 
 ## What gets redacted
@@ -80,22 +80,22 @@ safepaste --status
 ## Docker
 
 ```bash
-docker pull logicgridai/safepaste:latest
+docker pull logicgridai/saferelay:latest
 
-cat /var/log/app.log | docker run --rm -i logicgridai/safepaste --mask
+cat /var/log/app.log | docker run --rm -i logicgridai/saferelay --mask
 ```
 
 ## Kubernetes sidecar
 
 ```yaml
 containers:
-  - name: safepaste
-    image: logicgridai/safepaste:3.4.1
+  - name: saferelay
+    image: logicgridai/saferelay:latest
     env:
       - name: SAFEPASTE_LICENSE_KEY
         valueFrom:
           secretKeyRef:
-            name: safepaste-secret
+            name: saferelay-secret
             key: license-key
 ```
 
@@ -107,12 +107,12 @@ containers:
 | Pro | $7.99/month or $59/year | 35+ patterns, full vault |
 | SafeRelay Suite | $99 one-time | SafePaste + SpeakPaste + Boomerang Snip |
 
-→ [Get a license at safepaste.app](https://safepaste.app)
+→ [Get a license at saferelay.ai](https://saferelay.ai)
 
 ## Privacy
 
-Clipboard and log content never leaves your machine. License activation sends only a hashed device fingerprint to `api.safepaste.app` — no log data, ever.
+Clipboard and log content never leaves your machine. License activation sends only a hashed device fingerprint to `api.saferelay.ai` — no log data, ever.
 
-Full privacy policy: [safepaste.app/privacy](https://safepaste.app/privacy)
+Full privacy policy: [saferelay.ai/privacy](https://saferelay.ai/privacy)
 
 **Built by [LogicGrid AI, LLC](https://logicgrid.ai)** — support@logicgrid.ai
