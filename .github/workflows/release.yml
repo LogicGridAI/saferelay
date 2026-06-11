@@ -63,8 +63,6 @@ jobs:
           tags: |
             logicgridai/saferelay:${{ env.VERSION }}
             logicgridai/saferelay:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   # ── 3. Chrome Extension ───────────────────────────────────────────────────
   publish-chrome:
