@@ -5,7 +5,9 @@ on:
   push:
     tags:
       - 'v*'
-
+permissions:
+  contents: write    # needed for GitHub Release creation
+  id-token: write    # needed for PyPI OIDC (if used)
 jobs:
   # ── 1. PyPI ────────────────────────────────────────────────────────────────
   publish-pypi:
