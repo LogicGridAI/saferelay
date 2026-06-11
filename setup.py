@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 setup(
     name="saferelay-enterprise",
-    version="3.5.0",
+    version="3.5.1",
     description="Zero-trust local DLP for AI-era workflows — 35+ threat patterns across 8+ countries",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",

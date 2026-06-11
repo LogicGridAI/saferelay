@@ -4,7 +4,7 @@ saferelay — SafeRelay Enterprise CLI
 Zero-trust local DLP for AI-era workflows.
 35+ threat patterns across 8+ countries.
 """
-__version__ = "3.5.0"
+__version__ = "3.5.1"
 from __future__ import annotations
 from __future__ import annotations
 import argparse
