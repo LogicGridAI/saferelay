@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "SafeRelay \u2014 Local AI DLP",
+  "version": "3.5.1",
+  "description": "Local DLP that redacts secrets, PII, tokens, IPs, and protected terms before pasting into AI tools.",
+  "permissions": [
+    "storage",
+    "clipboardRead",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "https://api.safepaste.app/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SafeRelay",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "all_frames": true,
+      "match_about_blank": true,
+      "js": [
+        "vault.js",
+        "patterns.js",
+        "content_min.js"
+      ],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none';"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "saferelay-dlp@logicgrid.ai",
+      "strict_min_version": "109.0"
+    }
+  }
+}

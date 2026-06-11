@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeRelay</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-border: #1f2937;
+      --row-border: #1e293b;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --muted-dim: #64748b;
+      --accent: #22c55e;
+      --accent-dim: #166534;
+      --focus: #60a5fa;
+      --switch-off: #334155;
+      --warn-bg: #422006;
+      --warn-border: #a16207;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      background: radial-gradient(circle at top, #1e293b 0%, var(--bg) 60%);
+      color: var(--text);
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      font-size: 13px;
+      padding: 12px;
+      padding-bottom: 8px;
+    }
+
+    .hidden { display: none !important; }
+
+    .panel {
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+      overflow: hidden;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 13px 14px 11px;
+      border-bottom: 1px solid var(--panel-border);
+      background: linear-gradient(160deg, #1e293b 0%, var(--panel) 100%);
+    }
+    .header-icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
+    .header-text { flex: 1; min-width: 0; }
+    .header-text h1 {
+      font-size: 14px;
+      font-weight: 650;
+      letter-spacing: 0.2px;
+    }
+    .header-text p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    #status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.45);
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    #status-dot.off { background: var(--muted-dim); box-shadow: none; }
+
+    /* ── Free tier / paywall ── */
+    .paywall {
+      padding: 14px;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .paywall.hidden + .divider-paywall { display: none; }
+
+    .badge-free {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #fcd34d;
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .paywall-copy {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.45;
+      margin-bottom: 10px;
+    }
+
+    .license-input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--row-border);
+      background: #0b1220;
+      color: var(--text);
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+      margin-bottom: 8px;
+    }
+    .license-input:focus { border-color: var(--focus); box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2); }
+    .license-input::placeholder { color: var(--muted-dim); }
+
+    .btn-unlock {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--accent-dim);
+      background: var(--accent);
+      color: #052e16;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: filter 0.15s, transform 0.05s;
+    }
+    .btn-unlock:hover { filter: brightness(1.06); }
+    .btn-unlock:active { transform: scale(0.99); }
+    .btn-unlock:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .paywall-error {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #fca5a5;
+      min-height: 16px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted-dim);
+      padding: 11px 14px 6px;
+    }
+
+    .setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 14px;
+      border-top: 1px solid var(--row-border);
+    }
+    .setting-info { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; }
+    .setting-icon { font-size: 15px; flex-shrink: 0; }
+    .setting-title { font-size: 12px; font-weight: 500; line-height: 1.3; }
+    .setting-desc { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+    .switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+    .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      inset: 0;
+      cursor: pointer;
+      background: var(--switch-off);
+      border-radius: 999px;
+      transition: background 0.2s;
+    }
+    .slider::before {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      left: 3px;
+      top: 3px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+      transition: transform 0.2s;
+    }
+    .switch input:checked + .slider { background: var(--accent-dim); }
+    .switch input:checked + .slider::before { transform: translateX(18px); background: var(--accent); }
+    .switch input:focus-visible + .slider { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+    /* Free tier: Pro switches forced off + disabled — always gray track, knob left */
+    #proFeatures.pro-features--locked .switch input:disabled + .slider {
+      cursor: not-allowed;
+      background: #252b3a;
+      opacity: 0.9;
+    }
+    #proFeatures.pro-features--locked .switch input:disabled + .slider::before {
+      transform: translateX(0) !important;
+      background: #64748b;
+      box-shadow: none;
+    }
+    #proFeatures.pro-features--locked .switch input:disabled:checked + .slider,
+    #proFeatures.pro-features--locked .switch input:disabled:checked + .slider::before {
+      background: #252b3a;
+    }
+    #proFeatures.pro-features--locked .switch input:disabled:checked + .slider::before {
+      transform: translateX(0) !important;
+      background: #64748b;
+    }
+    #proFeatures.pro-features--locked .nda-input:disabled,
+    #proFeatures.pro-features--locked .nda-add-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(0.2);
+    }
+
+    .divider { height: 1px; background: var(--panel-border); margin: 0; }
+
+    .nda-input-row { display: flex; gap: 6px; padding: 6px 14px 8px; }
+    .nda-input {
+      flex: 1;
+      padding: 7px 10px;
+      border-radius: 7px;
+      border: 1px solid var(--row-border);
+      background: #0f172a;
+      color: var(--text);
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+    }
+    .nda-input:focus { border-color: var(--focus); }
+    .nda-add-btn {
+      padding: 7px 12px;
+      border-radius: 7px;
+      border: 1px solid var(--accent-dim);
+      background: transparent;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .nda-add-btn:hover { background: var(--accent-dim); color: #fff; }
+
+    .nda-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 0 14px 10px;
+      min-height: 0;
+    }
+    .nda-tags:empty::before {
+      content: "No keywords set";
+      font-size: 10px;
+      color: var(--muted-dim);
+      font-style: italic;
+    }
+    .nda-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #1e3a2f;
+      border: 1px solid var(--accent-dim);
+      color: #86efac;
+      font-size: 11px;
+      max-width: 200px;
+    }
+    .nda-tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nda-tag-x {
+      border: none;
+      background: transparent;
+      color: #86efac;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+      opacity: 0.75;
+    }
+    .nda-tag-x:hover { opacity: 1; }
+
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+    }
+    .stat-label { font-size: 12px; font-weight: 600; }
+    .stat-value { font-size: 18px; font-weight: 700; color: var(--accent); }
+
+    .btn-row { display: flex; gap: 6px; padding: 0 14px 10px; }
+    .btn {
+      flex: 1;
+      padding: 7px 8px;
+      border-radius: 7px;
+      border: 1px solid var(--row-border);
+      background: #0f172a;
+      color: var(--muted);
+      font-size: 11px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .btn:hover { color: var(--text); border-color: var(--muted-dim); }
+    .btn.danger:hover { border-color: #ef4444; color: #fca5a5; }
+
+    #feedback {
+      margin: 0 14px 8px;
+      padding: 6px 10px;
+      border-radius: 7px;
+      font-size: 11px;
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: opacity 0.2s, max-height 0.25s;
+    }
+    #feedback.show { opacity: 1; max-height: 48px; }
+    #feedback.success { background: #14532d; border: 1px solid var(--accent-dim); color: #86efac; }
+    #feedback.warning { background: #431407; border: 1px solid #7c2d12; color: #fdba74; }
+
+    footer.footer {
+      padding: 10px 14px 12px;
+      border-top: 1px solid var(--panel-border);
+      text-align: center;
+    }
+    .btn-reset {
+      background: transparent;
+      border: none;
+      color: var(--muted-dim);
+      font-size: 10px;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 0;
+    }
+    .btn-reset:hover { color: var(--muted); }
+    .footer-meta { font-size: 10px; color: var(--muted-dim); margin-bottom: 6px; }
+
+    /* ── Upgrade CTA ── */
+    .upgrade-cta {
+      margin: 0 14px 10px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #14532d 0%, #166534 100%);
+      border: 1px solid #22c55e40;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      transition: filter 0.15s;
+      text-decoration: none;
+    }
+    .upgrade-cta:hover { filter: brightness(1.1); }
+    .upgrade-cta-text { font-size: 11px; color: #86efac; line-height: 1.4; }
+    .upgrade-cta-text strong { display: block; font-size: 12px; color: #f0fdf4; font-weight: 700; }
+    .upgrade-cta-arrow { font-size: 16px; color: #22c55e; flex-shrink: 0; }
+    .pro-features--locked {
+      position: relative;
+      opacity: 0.5;
+      pointer-events: none;
+      filter: grayscale(0.25);
+    }
+    .pro-features--locked .switch input {
+      cursor: not-allowed;
+    }
+    .pro-lock-banner {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted-dim);
+      padding: 8px 14px 0;
+    }
+    .pro-hint {
+      font-size: 10px;
+      color: var(--muted-dim);
+      padding: 6px 14px 4px;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+<main class="panel" style="position:relative;">
+
+  <header class="header">
+    <span class="header-icon" aria-hidden="true">🛡️</span>
+    <div class="header-text">
+      <h1>SafeRelay</h1>
+      <p id="header-subtitle">Free — Basic Protection</p>
+    </div>
+    <div id="status-dot" role="status" aria-label="Status"></div>
+  </header>
+
+  <!-- Paywall: visible when not licensed -->
+  <div id="paywall" class="paywall hidden">
+    <div class="badge-free">Free tier</div>
+    <p class="paywall-copy">Paste protection redacts IPs and API keys only. Unlock Pro for vault, green-lock reveal, FinTech patterns, Protected Terms, and exfiltration shield.</p>
+    <input type="text" id="licenseKeyInput" class="license-input" placeholder="License key" autocomplete="off" spellcheck="false" aria-label="License key">
+    <button type="button" id="unlockProBtn" class="btn-unlock">Unlock Pro</button>
+    <div id="paywallError" class="paywall-error" role="alert"></div>
+  </div>
+  <div class="divider divider-paywall"></div>
+
+  <div class="section-label">Protection</div>
+  <div class="setting">
+    <div class="setting-info">
+      <span class="setting-icon" aria-hidden="true">🔐</span>
+      <div>
+        <div class="setting-title">Basic Protection</div>
+        <div class="setting-desc">IPs &amp; API keys (Free &amp; Pro)</div>
+      </div>
+    </div>
+    <label class="switch" for="basicProtection">
+      <input id="basicProtection" type="checkbox" checked aria-label="Basic Protection — IPs and API keys">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div id="proFeatures">
+    <div class="pro-lock-banner" id="pro-lock-banner">Pro — unlock below</div>
+
+    <div class="section-label">Enterprise</div>
+
+    <div class="setting">
+      <div class="setting-info">
+        <span class="setting-icon" aria-hidden="true">⚙️</span>
+        <div>
+          <div class="setting-title">DevSec — MAC addresses</div>
+          <div class="setting-desc">API keys · tokens · IPs · MAC · env values</div>
+        </div>
+      </div>
+      <label class="switch" for="devsecMode">
+        <input id="devsecMode" type="checkbox" aria-label="DevSec MAC mode">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="setting">
+      <div class="setting-info">
+        <span class="setting-icon" aria-hidden="true">🏦</span>
+        <div>
+          <div class="setting-title">FinTech &amp; PII Shield</div>
+          <div class="setting-desc">Cards · SSN · IBAN · 35+ global PII patterns</div>
+        </div>
+      </div>
+      <label class="switch" for="fintechShield">
+        <input id="fintechShield" type="checkbox" aria-label="FinTech Shield">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="setting">
+      <div class="setting-info">
+        <span class="setting-icon" aria-hidden="true">🏛️</span>
+        <div>
+          <div class="setting-title">Corporate Identity Shield</div>
+          <div class="setting-desc">D-U-N-S · EIN · VAT · Vendor IDs</div>
+        </div>
+      </div>
+      <label class="switch" for="corporateShield">
+        <input id="corporateShield" type="checkbox" aria-label="Corporate Identity Shield">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="setting">
+      <div class="setting-info">
+        <span class="setting-icon" aria-hidden="true">🌍</span>
+        <div>
+          <div class="setting-title">Mission &amp; Civic Shield</div>
+          <div class="setting-desc">GPS · Beneficiary IDs · Site refs · Field data</div>
+        </div>
+      </div>
+      <label class="switch" for="civicShield">
+        <input id="civicShield" type="checkbox" aria-label="Mission and Civic Shield">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="setting">
+      <div class="setting-info">
+        <span class="setting-icon" aria-hidden="true">🛡️</span>
+        <div>
+          <div class="setting-title">Exfiltration Shield</div>
+          <div class="setting-desc">Block bulk US SSN copy-out</div>
+        </div>
+      </div>
+      <label class="switch" for="exfiltrationShield">
+        <input id="exfiltrationShield" type="checkbox" aria-label="Exfiltration Shield">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <p class="pro-hint" id="green-lock-hint">🔒 Green Lock in-page reveal — Pro only (vault + unmask in AI replies)</p>
+
+    <div class="divider"></div>
+    <div class="section-label">Custom Protected Terms</div>
+    <div class="nda-input-row">
+      <input id="nda-input" class="nda-input" type="text" placeholder="Add a term to protect..." maxlength="60" autocomplete="off" spellcheck="false" aria-label="Protected term">
+      <button type="button" class="nda-add-btn" id="nda-add">Add</button>
+    </div>
+    <div id="nda-tags" class="nda-tags" role="list"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="stats">
+    <span class="stat-label">Lifetime Threats Blocked</span>
+    <span class="stat-value" id="stat-lifetime">0</span>
+  </div>
+
+  <div class="btn-row">
+    <button type="button" class="btn danger" id="btn-clear">Clear vault</button>
+    <button type="button" class="btn" id="btn-log">Audit log</button>
+  </div>
+
+  <div id="feedback" role="status" aria-live="polite"></div>
+
+  <!-- Upgrade CTA — visible on free tier only, hidden when Pro is active -->
+  <a id="upgrade-cta" class="upgrade-cta hidden"
+     href="https://logicgrid-commerce-worker.admin-thequanthub.workers.dev/payments/stripe/checkout?tier=pro&interval=month&price=price_1TYwwuBnImmxEjR73oa0Vx2p"
+     target="_blank"
+     rel="noopener noreferrer"
+     aria-label="Upgrade to SafeRelay Pro">
+    <div class="upgrade-cta-text">
+      <strong>Upgrade to Pro</strong>
+      Unlock all shields, Green Lock &amp; Protected Terms
+    </div>
+    <span class="upgrade-cta-arrow">→</span>
+  </a>
+
+  <footer class="footer">
+    <div class="footer-meta">SafeRelay · v3.5.0</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:6px;">
+      <button type="button" id="btn-reset-stats" class="btn-reset">Reset Stats</button>
+      <span style="color:#2d3748;font-size:10px;">·</span>
+      <a href="https://mail.google.com/mail/?view=cm&to=support@logicgrid.ai&su=SafeRelay+Support" target="_blank" rel="noopener noreferrer"
+         style="color:var(--muted-dim);font-size:10px;text-decoration:underline;cursor:pointer;"
+         title="Email support">Support</a>
+      <span id="get-pro-sep" style="color:#2d3748;font-size:10px;">·</span>
+      <a id="get-pro-link"
+         href="https://logicgrid-commerce-worker.admin-thequanthub.workers.dev/payments/stripe/checkout?tier=pro&interval=month&price=price_1TYwwuBnImmxEjR73oa0Vx2p"
+         target="_blank" rel="noopener noreferrer"
+         style="color:var(--muted-dim);font-size:10px;text-decoration:underline;cursor:pointer;"
+         title="Get Pro license">Get Pro</a>
+    </div>
+  </footer>
+
+
+  <!-- First-run consent screen -->
+  <div id="consent-screen">
+    <div class="consent-logo">🛡️</div>
+    <div class="consent-title">Before you start</div>
+    <p class="consent-sub">Please read and accept the following before using SafeRelay.</p>
+
+    <div class="consent-box">
+      <strong>What SafeRelay does:</strong>
+      <ul>
+        <li>Intercepts clipboard paste events locally in your browser</li>
+        <li>Redacts sensitive patterns using regex matching</li>
+        <li>Stores real values in a RAM-only vault (destroyed on tab close)</li>
+        <li>Reveals values locally with a green lock badge in AI responses</li>
+      </ul>
+
+      <strong>Important limitations:</strong>
+      <ul>
+        <li>Pattern-based detection — non-standard formats may not be caught</li>
+        <li>Not a guarantee of 100% sensitive data interception</li>
+        <li>Not a substitute for your organisation's security policy</li>
+        <li>Does not make AI workflows automatically HIPAA or GDPR compliant</li>
+        <li>Only outbound request: license verification to api.safepaste.app</li>
+      </ul>
+
+      <strong>No data is ever transmitted</strong> except a hashed device fingerprint and your license key for Pro verification. No clipboard content, browsing data, or personal information is sent to any server.
+    </div>
+
+    <div class="consent-warn">
+      ⚠ SafeRelay is a supplementary DLP layer. LogicGrid AI, LLC is not liable for data exposure or compliance violations arising from the use or limitations of this tool.
+    </div>
+
+    <label class="consent-check">
+      <input type="checkbox" id="consent-checkbox">
+      <span>I have read and understood the limitations. I accept the <a href="https://safepaste.app/privacy" target="_blank">Privacy Policy</a> and <a href="https://safepaste.app/privacy#disclaimer" target="_blank">Disclaimer</a>.</span>
+    </label>
+
+    <button id="consent-btn" class="btn-consent" disabled>✓ I Understand — Continue</button>
+  </div>
+
+</main>
+<script src="popup_min.js"></script>
+<div style="text-align: center; padding-top: 15px; margin-top: 15px; border-top: 1px solid #2a303c; color: #6b7280; font-size: 11px; font-weight: 500; letter-spacing: 0.5px;">&copy; 2026 LogicGrid AI, LLC. All rights reserved.</div>
+</body>
+</html>
