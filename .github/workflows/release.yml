@@ -17,19 +17,39 @@ jobs:
     environment: release
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Extract version from tag
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
       - name: Bump version in setup.py and __main__.py
         run: |
           sed -i "s/version=\"[0-9.]*\"/version=\"$VERSION\"/" setup.py
           sed -i "s/__version__ = \"[0-9.]*\"/__version__ = \"$VERSION\"/" saferelay/__main__.py
+          grep -n "version" setup.py saferelay/__main__.py | head -5
+
       - name: Install build
         run: pip install build
-      - name: Build wheel
+
+      - name: Build wheel and sdist
         run: python -m build
+
+      - name: Verify build output
+        run: |
+          ls -la dist/
+          test -n "$(ls dist/*.whl 2>/dev/null)"
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
@@ -39,21 +59,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Extract version from tag
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
       - name: Bump version in setup.py and __main__.py
         run: |
           sed -i "s/version=\"[0-9.]*\"/version=\"$VERSION\"/" setup.py
           sed -i "s/__version__ = \"[0-9.]*\"/__version__ = \"$VERSION\"/" saferelay/__main__.py
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build and push multi-arch image
         uses: docker/build-push-action@v5
         with:
@@ -73,33 +99,51 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+
       - name: Extract version from tag
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
       - name: Generate SHA256 checksums
         run: |
-          find dist/ -name "*.whl" -exec sha256sum {} \; > checksums.txt 2>/dev/null || true
-          find dist/ -name "*.tar.gz" -exec sha256sum {} \; >> checksums.txt 2>/dev/null || true
+          ls -la dist/
+          cd dist && sha256sum *.whl *.tar.gz > ../checksums.txt && cd ..
+          cat checksums.txt
+          test -s checksums.txt
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: SafeRelay Enterprise v${{ env.VERSION }}
+          name: SafeRelay v${{ env.VERSION }}
           body: |
-            ## SafeRelay Enterprise v${{ env.VERSION }}
+            ## SafeRelay v${{ env.VERSION }}
 
             ### Distribution
             | Channel | Install |
             |---------|---------|
-            | Chrome Web Store | [Install extension](https://chromewebstore.google.com/detail/safepaste-enterprise/odeoilooelkodahbbdokbollgahdcaag) |
+            | Chrome Web Store | [Install extension](https://chromewebstore.google.com/detail/odeoilooelkodahbbdokbollgahdcaag) |
             | Firefox AMO | [Install extension](https://addons.mozilla.org/en-US/firefox/addon/saferelay-dlp/) |
-            | PyPI | `pip install saferelay-enterprise==${{ env.VERSION }}` |
+            | PyPI | `pip install saferelay==${{ env.VERSION }}` |
             | Docker | `docker pull logicgridai/saferelay:${{ env.VERSION }}` |
             | npm SDK | `npm install @logicgridai/saferelay-sdk` |
+
+            ### Verify downloads
+            ```
+            sha256sum -c checksums.txt
+            ```
 
             ### What's protected
             40+ threat patterns across 8+ countries — API keys, PII, crypto wallets, and more.
             → [Full changelog](https://saferelay.ai) · [Get a license](https://saferelay.ai/#pricing)
           files: |
             checksums.txt
+            dist/*.whl
+            dist/*.tar.gz
           generate_release_notes: true
 
   # ── 4. Release Summary ─────────────────────────────────────────────────────
@@ -111,6 +155,7 @@ jobs:
     steps:
       - name: Extract version from tag
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
       - name: Print release summary
         run: |
           echo "================================"
