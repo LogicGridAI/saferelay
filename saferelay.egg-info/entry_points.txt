@@ -1,0 +1,2 @@
+[console_scripts]
+saferelay = saferelay.__main__:main

@@ -1,0 +1,11 @@
+README.md
+setup.py
+saferelay/__init__.py
+saferelay/__main__.py
+saferelay/client.py
+saferelay.egg-info/PKG-INFO
+saferelay.egg-info/SOURCES.txt
+saferelay.egg-info/dependency_links.txt
+saferelay.egg-info/entry_points.txt
+saferelay.egg-info/requires.txt
+saferelay.egg-info/top_level.txt

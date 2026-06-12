@@ -5,7 +5,7 @@ Zero-trust local DLP for AI-era workflows.
 40+ threat patterns across 8+ countries.
 """
 from __future__ import annotations
-__version__ = "3.5.5"
+__version__ = "3.5.2"
 import argparse
 import json
 import os
