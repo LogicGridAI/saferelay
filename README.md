@@ -85,7 +85,7 @@ Free tier covers core patterns (IPv4 addresses, cloud access keys). Pro unlocks 
 | US SSN |
 | EU IBAN |
 | UK NINO |
-| Nigeria NIN / Bank / Phone |
+| Nigeria NIN / BVN |
 | Canada SIN |
 | India Aadhaar / PAN |
 | South Africa ID |

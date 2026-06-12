@@ -304,10 +304,10 @@ def main() -> None:
     p = argparse.ArgumentParser(
         prog="saferelay",
         description=(
-            f"SafePaste Enterprise CLI v{__version__} — "
-            "41 global PII patterns across 12+ countries. "
+            f"SafeRelay CLI v{__version__} — "
+            "40+ threat patterns across 8+ countries. "
             "Zero-trust DLP for AI-assisted workflows. "
-            "Free: IP + API key redaction. Pro: all Shield Packs + vault."
+            "Free: core patterns (IPv4, cloud access keys). Pro: all Shield Packs + vault."
         ),
     )
     p.add_argument("input", nargs="?", type=argparse.FileType("r"), default=sys.stdin,
