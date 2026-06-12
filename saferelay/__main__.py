@@ -330,9 +330,9 @@ def main() -> None:
 
     # ── --unlock ──────────────────────────────────────────────────────────────
     if args.unlock:
-        key = args.unlock.strip() or os.environ.get("SAFEPASTE_LICENSE_KEY", "").strip()
+        key = args.unlock.strip() or os.environ.get("SAFERELAY_LICENSE_KEY", "").strip() or os.environ.get("SAFEPASTE_LICENSE_KEY", "").strip()
         if not key:
-            print("safepaste: pass LICENSE_KEY or set SAFEPASTE_LICENSE_KEY", file=sys.stderr)
+            print("saferelay: pass LICENSE_KEY or set SAFERELAY_LICENSE_KEY", file=sys.stderr)
             sys.exit(1)
         print(f"safepaste: verifying license…", file=sys.stderr)
         ok, tier = verify_license(key)

@@ -11,7 +11,7 @@ setup(
     packages=find_packages(),
     python_requires=">=3.9",
     extras_require={"redis": ["redis>=4.0"]},
-    entry_points={"console_scripts": ["saferelay=safepaste.__main__:main"]},
+    entry_points={"console_scripts": ["saferelay=saferelay.__main__:main"]},
     license="Proprietary",
     keywords="ai-safety api-keys cli dlp pii redaction security zero-trust saferelay",
     classifiers=[

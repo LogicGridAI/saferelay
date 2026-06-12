@@ -1,35 +1,29 @@
-# SafePaste Enterprise CLI
+# SafeRelay CLI
 
-> Zero-trust DLP for Linux pipelines — 35+ threat patterns across 8+ countries.
+**Zero-trust local DLP for AI-era workflows — 40+ threat patterns across 8+ countries.**
 
-[![PyPI](https://img.shields.io/pypi/v/saferelay-enterprise)](https://pypi.org/project/saferelay-enterprise/)
-[![Docker Hub](https://img.shields.io/badge/Docker-logicgridai%2Fsaferelay-blue)](https://hub.docker.com/r/logicgridai/saferelay)
-[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-blue)](https://saferelay.ai)
+[![PyPI](https://img.shields.io/pypi/v/saferelay)](https://pypi.org/project/saferelay/)
+[![Docker](https://img.shields.io/docker/v/logicgridai/saferelay?label=docker)](https://hub.docker.com/r/logicgridai/saferelay)
 
-SafePaste redacts sensitive data in your Linux pipelines before it reaches AI tools, log aggregators, or external services.
-BEFORE                                    AFTER (SafePaste)
-─────────────────────────────────         ─────────────────────────────────
-OPENAI_API_KEY=sk-proj-abc...xyz
-AWS_ACCESS_KEY_ID=AKIA1234ABCD
-Authorization: Bearer eyJhb...            Authorization: Bearer [BEARER_1]
-Server: [IP_1]                      Server: [DEVSEC_1]
-SSN: [US_SSN_1]                          SSN: [US_SSN_1]
+SafeRelay redacts sensitive data in your pipelines before it reaches AI tools, log aggregators, or external services. Everything runs locally — your data never leaves your machine.
 
-## Get a License
-
-| Tier | Price | Get it |
-|------|-------|--------|
-| Free | $0 | [Chrome Web Store](https://chromewebstore.google.com/detail/saferelay-enterprise/odeoilooelkodahbbdokbollgahdcaag) |
-| Pro | $7.99/mo or $59/yr | [saferelay.ai/#pricing](https://saferelay.ai/#pricing) |
-| SafeRelay Suite | $99 one-time | [saferelay.ai/saferelay](https://saferelay.ai/saferelay) |
+```text
+BEFORE                                      AFTER (SafeRelay)
+─────────────────────────────────────────  ─────────────────────────────────────────
+OPENAI_API_KEY=sk-proj-abc...xyz            OPENAI_API_KEY=[OPENAI_KEY_1]
+AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE       AWS_ACCESS_KEY_ID=[AWS_KEY_1]
+Authorization: Bearer eyJhbGciOiJIUzI1...   Authorization: Bearer [BEARER_1]
+Server: 10.45.2.115                         Server: [IP_1]
+SSN: 234-56-7890                            SSN: [US_SSN_1]
+```
 
 ## Installation
 
 ```bash
-pip install saferelay-enterprise
+pip install saferelay
 
-# With Redis support (enterprise distributed vault)
-pip install saferelay-enterprise[redis]
+# With Redis support (distributed vault)
+pip install saferelay[redis]
 ```
 
 Requires Python 3.9+. No external dependencies for the base install.
@@ -51,12 +45,36 @@ saferelay --unlock "YOUR-LICENSE-KEY"
 saferelay --status
 ```
 
+## Docker
+
+```bash
+docker pull logicgridai/saferelay:latest
+
+cat /var/log/app.log | docker run --rm -i logicgridai/saferelay --mask
+```
+
+## Kubernetes sidecar
+
+```yaml
+containers:
+  - name: saferelay
+    image: logicgridai/saferelay:latest
+    env:
+      - name: SAFERELAY_LICENSE_KEY
+        valueFrom:
+          secretKeyRef:
+            name: saferelay-secret
+            key: license-key
+```
+
 ## What gets redacted
 
 | Pattern | Free | Pro |
-|---------|------|-----|
+|---|---|---|
 | IPv4 addresses | ✓ | ✓ |
 | API keys (OpenAI, Anthropic, AWS, GitHub, Slack, Gemini) | ✓ | ✓ |
+| AWS Secret Access Keys (YAML + bare) | ✓ | ✓ |
+| Docker / npm tokens, Slack webhooks, Google OAuth | ✓ | ✓ |
 | Bitcoin / Ethereum addresses | ✓ | ✓ |
 | PEM private keys | ✓ | ✓ |
 | .env file values | ✓ | ✓ |
@@ -77,42 +95,29 @@ saferelay --status
 | ETH private keys | — | ✓ |
 | Custom NDA keywords | — | ✓ |
 
-## Docker
+## Browser extensions
 
-```bash
-docker pull logicgridai/saferelay:latest
-
-cat /var/log/app.log | docker run --rm -i logicgridai/saferelay --mask
-```
-
-## Kubernetes sidecar
-
-```yaml
-containers:
-  - name: saferelay
-    image: logicgridai/saferelay:latest
-    env:
-      - name: SAFEPASTE_LICENSE_KEY
-        valueFrom:
-          secretKeyRef:
-            name: saferelay-secret
-            key: license-key
-```
+| Browser | Link |
+|---|---|
+| Chrome | [Chrome Web Store](https://chromewebstore.google.com/detail/saferelay-%E2%80%94-local-ai-dlp/odeoilooelkodahbbdokbollgahdcaag) |
+| Firefox | [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/saferelay-dlp/) |
 
 ## Pricing
 
 | Tier | Price | Features |
-|------|-------|---------|
-| Free | $0 | IP + API key redaction |
-| Pro | $7.99/month or $59/year | 35+ patterns, full vault |
-| SafeRelay Suite | $99 one-time | SafePaste + SpeakPaste + Boomerang Snip |
+|---|---|---|
+| Free | \$0 | IP + API key redaction |
+| Pro | \$7.99/mo or \$59/yr | 40+ patterns, full vault |
+| SafeRelay Suite | \$99 one-time | CLI Pro + Browser Pro + Desktop Agent (waitlist) |
 
-→ [Get a license at saferelay.ai](https://saferelay.ai)
+→ Get a license at [saferelay.ai](https://saferelay.ai/#pricing)
 
 ## Privacy
 
-Clipboard and log content never leaves your machine. License activation sends only a hashed device fingerprint to `api.saferelay.ai` — no log data, ever.
+Clipboard and log content **never leaves your machine**. License activation sends only a hashed device fingerprint to the license server — no log data, ever.
 
 Full privacy policy: [saferelay.ai/privacy](https://saferelay.ai/privacy)
 
-**Built by [LogicGrid AI, LLC](https://logicgrid.ai)** — support@logicgrid.ai
+---
+
+Built by **LogicGrid AI, LLC** — support@logicgrid.ai
