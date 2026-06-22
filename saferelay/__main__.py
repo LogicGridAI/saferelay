@@ -176,7 +176,9 @@ def redact(text: str, enabled_groups: set[str], vault: dict,
     for kw in custom_keywords:
         if not kw:
             continue
-        pat = re.compile(re.escape(kw), re.IGNORECASE)
+        # Word-boundary anchored so "AcmeHealth" doesn't match inside
+        # "acmehealth.com". \b works at alphanumeric edges.
+        pat = re.compile(rf"\b{re.escape(kw)}\b", re.IGNORECASE)
 
         def _nda_sub(m):
             counters["NDA"] = counters.get("NDA", 0) + 1
@@ -202,6 +204,11 @@ def redact(text: str, enabled_groups: set[str], vault: dict,
                 counters[l] = c[0]
                 vault[f"[{l}_{c[0]}]"] = value
                 return f"{m.group(1)}{prefix}[{l}_{c[0]}]"
+            if cf == "preserve_conn":
+                c[0] += 1
+                counters[l] = c[0]
+                vault[f"[{l}_{c[0]}]"] = m.group(2)
+                return f"{m.group(1)}{prefix}[{l}_{c[0]}]{m.group(3)}"
             match_str = m.group(0)
             if v and not v(match_str):
                 return match_str
@@ -242,6 +249,12 @@ def main() -> None:
                    help="Show current license tier and active shields.")
     p.add_argument("--clear-vault", action="store_true",
                    help="Wipe all vaulted values.")
+    p.add_argument("--add-term", metavar="TERM",
+                   help="Add a Custom Protected Term (server/client/project name) to always redact. Pro.")
+    p.add_argument("--remove-term", metavar="TERM",
+                   help="Remove a Custom Protected Term.")
+    p.add_argument("--list-terms", action="store_true",
+                   help="List all Custom Protected Terms.")
     p.add_argument("--pro", action="store_true",
                    help="Force Pro-tier for this run (no license call).")
     p.add_argument("--no-emoji", action="store_true",
@@ -296,6 +309,41 @@ def main() -> None:
     if args.clear_vault:
         _save_vault({})
         print("saferelay: vault cleared.")
+        return
+
+    # ── Custom Protected Terms (Pro) ──────────────────────────────────────────
+    if args.add_term:
+        if not is_pro:
+            print("saferelay: Custom Protected Terms require Pro. Run --unlock <key>.", file=sys.stderr)
+            sys.exit(1)
+        term = args.add_term.strip()
+        terms = cfg.get("custom_keywords", [])
+        if term and term.lower() not in [t.lower() for t in terms]:
+            terms.append(term)
+            cfg["custom_keywords"] = terms
+            _save_config(cfg)
+            print(f"saferelay: added protected term '{term}' ({len(terms)} total).")
+        else:
+            print(f"saferelay: '{term}' already protected or empty.")
+        return
+
+    if args.remove_term:
+        term = args.remove_term.strip()
+        terms = cfg.get("custom_keywords", [])
+        new_terms = [t for t in terms if t.lower() != term.lower()]
+        cfg["custom_keywords"] = new_terms
+        _save_config(cfg)
+        print(f"saferelay: removed '{term}' ({len(new_terms)} remaining).")
+        return
+
+    if args.list_terms:
+        terms = cfg.get("custom_keywords", [])
+        if not terms:
+            print("saferelay: no Custom Protected Terms set.")
+        else:
+            print(f"saferelay: {len(terms)} Custom Protected Term(s):")
+            for t in terms:
+                print(f"  • {t}")
         return
 
     # ── --unmask ──────────────────────────────────────────────────────────────

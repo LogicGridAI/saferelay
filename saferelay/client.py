@@ -182,6 +182,13 @@ def _ctx_64_hex(m: re.Match, source: str) -> bool:
 # ---------------------------------------------------------------------------
 
 _PATTERNS: list[tuple[str, str, re.Pattern, Optional[Callable], Optional[Callable]]] = [
+    # ── Connection-string credentials (scheme://user:PASSWORD@host) ────────
+    # Redacts only the password; keeps scheme/user/host visible so the log
+    # stays debuggable. Runs first so the password is gone before any other
+    # rule sees it. preserve_group1 keeps g1 (scheme://user:), g3 (@host).
+    ("CONN_STRING",   "devsec", re.compile(
+        r"\b([a-z][a-z0-9+.\-]*://[^:/\s@]+:)([^\s]+?)(@[a-zA-Z0-9.\-]+(?::\d+)?(?:[/\s]|$))",
+        re.I), None, "preserve_conn"),
     # ── DevSec / API keys — named (most specific first) ────────────────────
     ("OPENAI_KEY",    "devsec", re.compile(r"\bsk-proj-[a-zA-Z0-9_-]{20,}\b", re.I), None, None),
     ("OPENAI_KEY",    "devsec", re.compile(r"\bsk-(?!proj-|ant-)[a-zA-Z0-9_-]{16,}\b", re.I), _v_openai_legacy, None),
@@ -332,6 +339,13 @@ class SafeRelayClient:
                     c[0] += 1
                     self._detections[l] = c[0]
                     return f"{prefix_grp}{prefix}[{l}_{c[0]}]"
+
+                # CONN_STRING: redact only the password (group 2), keep
+                # group 1 (scheme://user:) and group 3 (@host) visible.
+                if cf == "preserve_conn":
+                    c[0] += 1
+                    self._detections[l] = c[0]
+                    return f"{m.group(1)}{prefix}[{l}_{c[0]}]{m.group(3)}"
 
                 match_str = m.group(0)
                 if v and not v(match_str):
