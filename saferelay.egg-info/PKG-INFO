@@ -1,6 +1,6 @@
-Metadata-Version: 2.4
+Metadata-Version: 2.1
 Name: saferelay
-Version: 3.5.2
+Version: 3.6.0
 Summary: Zero-trust local DLP for AI-era workflows — 40+ threat patterns across 8+ countries
 Home-page: https://saferelay.ai
 Author: LogicGrid AI, LLC
@@ -16,18 +16,6 @@ Classifier: Topic :: Security
 Requires-Python: >=3.9
 Description-Content-Type: text/markdown
 Provides-Extra: redis
-Requires-Dist: redis>=4.0; extra == "redis"
-Dynamic: author
-Dynamic: author-email
-Dynamic: classifier
-Dynamic: description
-Dynamic: description-content-type
-Dynamic: home-page
-Dynamic: keywords
-Dynamic: license
-Dynamic: provides-extra
-Dynamic: requires-python
-Dynamic: summary
 
 # SafeRelay CLI
 
@@ -100,31 +88,33 @@ containers:
 
 ## What gets redacted
 
-| Pattern | Free | Pro |
-|---|---|---|
-| IPv4 addresses | ✓ | ✓ |
-| API keys (OpenAI, Anthropic, AWS, GitHub, Slack, Gemini) | ✓ | ✓ |
-| AWS Secret Access Keys (YAML + bare) | ✓ | ✓ |
-| Docker / npm tokens, Slack webhooks, Google OAuth | ✓ | ✓ |
-| Bitcoin / Ethereum addresses | ✓ | ✓ |
-| PEM private keys | ✓ | ✓ |
-| .env file values | ✓ | ✓ |
-| MAC addresses | — | ✓ |
-| Credit cards (Luhn-validated) | — | ✓ |
-| US SSN | — | ✓ |
-| EU IBAN | — | ✓ |
-| UK NINO | — | ✓ |
-| Nigeria NIN / Bank / Phone | — | ✓ |
-| Canada SIN | — | ✓ |
-| India Aadhaar / PAN | — | ✓ |
-| South Africa ID | — | ✓ |
-| Australia TFN | — | ✓ |
-| Brazil CPF | — | ✓ |
-| Singapore NRIC | — | ✓ |
-| Germany Tax ID | — | ✓ |
-| Seed phrases (12/24 word) | — | ✓ |
-| ETH private keys | — | ✓ |
-| Custom NDA keywords | — | ✓ |
+Free tier covers core patterns (IPv4 addresses, cloud access keys). Pro unlocks all 40+ patterns below.
+
+| Pattern |
+|---|
+| IPv4 addresses |
+| API keys (OpenAI, Anthropic, AWS, GitHub, Slack, Gemini) |
+| AWS Secret Access Keys (YAML + bare) |
+| Docker / npm tokens, Slack webhooks, Google OAuth |
+| Bitcoin / Ethereum addresses |
+| PEM private keys |
+| .env file values |
+| MAC addresses |
+| Credit cards (Luhn-validated) |
+| US SSN |
+| EU IBAN |
+| UK NINO |
+| Nigeria NIN / BVN |
+| Canada SIN |
+| India Aadhaar / PAN |
+| South Africa ID |
+| Australia TFN |
+| Brazil CPF |
+| Singapore NRIC |
+| Germany Tax ID |
+| Seed phrases (12/24 word) |
+| ETH private keys |
+| Custom NDA keywords |
 
 ## Browser extensions
 
@@ -137,7 +127,7 @@ containers:
 
 | Tier | Price | Features |
 |---|---|---|
-| Free | \$0 | IP + API key redaction |
+| Free | \$0 | Core patterns — IPv4, cloud access keys |
 | Pro | \$7.99/mo or \$59/yr | 40+ patterns, full vault |
 | SafeRelay Suite | \$99 one-time | CLI Pro + Browser Pro + Desktop Agent (waitlist) |
 
