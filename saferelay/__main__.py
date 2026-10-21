@@ -2,15 +2,17 @@
 """
 saferelay — SafeRelay CLI
 Zero-trust local DLP for AI-era workflows.
-53 canonical threat patterns across 10+ countries.
+8 shields incl. Gov/CUI + exfiltration, 50+ canonical threat patterns.
 
 This CLI shares ONE pattern engine with the SafeRelay SDK (client.py):
-patterns, validators, and labels are imported from .client so the
-`saferelay` command, the SafeRelayClient class, and the Docker image
-all redact identically. No drift.
+patterns, validators, labels, and the engine semantics (definition-order
+precedence, claimed-span suppression, NFKC normalisation, exfiltration
+bulk-block, fail-closed) are imported from .client so the `saferelay`
+command, the SafeRelayClient class, and the Docker image all redact
+identically to the Browser Relay / Desktop engine. No drift.
 """
 from __future__ import annotations
-__version__ = "3.6.1"
+__version__ = "3.7.0"
 
 import argparse
 import json
@@ -29,9 +31,16 @@ except ImportError:
     HAS_REDIS = False
 
 # ── Canonical pattern engine (single source of truth) ───────────────────────
-# _PATTERNS entries: (label, group, compiled_regex, validator|None, context_fn|None)
-# groups: "devsec" | "fintech" | "corporate" | "civic"
-from .client import _PATTERNS, PATTERN_TYPES  # noqa: E402
+# _PATTERNS entries: (type_id, group, compiled_regex, validator|None, strategy|ctx)
+# groups: "devsec" | "fintech" | "corporate" | "civic" | "gov_cui"
+# protect_relay_text mirrors dlp.js protectRelayText (precedence, claimed-span
+# suppression, NFKC normalisation, exfiltration bulk-block, fail-closed).
+from .client import (  # noqa: E402
+    _PATTERNS,
+    PATTERN_TYPES,
+    protect_relay_text,
+    check_exfiltration,
+)
 
 _LEGACY_DIR = Path.home() / ".safepaste"
 _CONFIG_DIR = Path.home() / ".saferelay"
@@ -58,6 +67,8 @@ DEFAULT_CONFIG: dict = {
     "fintech_shield":   True,
     "corporate_shield": True,
     "civic_shield":     True,
+    "gov_cui_shield":   True,
+    "exfil_shield":     True,
     "custom_keywords":  [],
 }
 
@@ -147,81 +158,56 @@ def _save_vault(vault: dict) -> None:
     VAULT_PATH.write_text(json.dumps(vault, indent=2))
 
 
-# ── Redaction engine (consumes client.py _PATTERNS) ──────────────────────────
-def _enabled_groups(cfg: dict, is_pro: bool) -> set[str]:
-    groups = set(FREE_GROUPS)  # devsec always available
-    if is_pro:
-        if cfg.get("fintech_shield", True):
-            groups.add("fintech")
-        if cfg.get("corporate_shield", True):
-            groups.add("corporate")
-        if cfg.get("civic_shield", True):
-            groups.add("civic")
-    return groups
+# ── Shields (consumes client.py protect_relay_text) ──────────────────────────
+# Map the CLI config/flags onto the canonical shields dict understood by the
+# engine. devsec/basicProtection are the free tier (always on). Everything
+# else is Pro and toggled off when not licensed or disabled via a flag.
+def _build_shields(cfg: dict, is_pro: bool) -> dict:
+    return {
+        "basicProtection":    True,
+        "devsec":             True,
+        "fintech":            bool(is_pro and cfg.get("fintech_shield", True)),
+        "corporate":          bool(is_pro and cfg.get("corporate_shield", True)),
+        "civic":              bool(is_pro and cfg.get("civic_shield", True)),
+        "gov_cui":            bool(is_pro and cfg.get("gov_cui_shield", True)),
+        "exfiltrationShield": bool(is_pro and cfg.get("exfil_shield", True)),
+        "customTerms":        False,
+    }
 
 
-def redact(text: str, enabled_groups: set[str], vault: dict,
+class _BulkBlocked(Exception):
+    """CLI-local: raised to the main() handler when the exfiltration shield
+    (or a fail-closed engine error) blocks the relay."""
+
+    def __init__(self, block: dict):
+        self.block = block
+        super().__init__(block.get("errorCode", "BLOCKED"))
+
+
+def redact(text: str, shields: dict, vault: dict,
            custom_keywords: list[str], emoji: bool = True) -> tuple[str, dict]:
-    """Redact using the canonical _PATTERNS from client.py.
+    """Redact using the canonical engine in client.py.
 
-    Mirrors client.SafeRelayClient.redact ordering and the preserve-group-1
-    strategy for ENV_VALUE / NG_BVN / NG_NIN, while adding CLI vault + NDA.
+    Delegates to protect_relay_text so ordering, claimed-span suppression,
+    NFKC normalisation, the exfiltration bulk-block and fail-closed behaviour
+    all match the Browser Relay / Desktop engine exactly. Custom NDA keywords
+    are fed to the engine as CUSTOM_TERM patterns (word-boundary, verbatim).
+    The CLI vault is populated by the engine for reversible --unmask.
+
+    Returns (redacted_text, vault). Raises _BulkBlocked when the relay is
+    blocked, so main() can emit a hard error instead of raw text.
     """
-    counters: dict[str, int] = {}
-    prefix = "🔒" if emoji else ""
-    source = text
-    result = text
+    terms = [k for k in (custom_keywords or []) if k and k.strip()]
+    engine_shields = dict(shields)
+    if terms:
+        engine_shields["customTerms"] = True
 
-    # Custom NDA keywords first (Pro only — caller passes [] if free)
-    for kw in custom_keywords:
-        if not kw:
-            continue
-        # Word-boundary anchored so "AcmeHealth" doesn't match inside
-        # "acmehealth.com". \b works at alphanumeric edges.
-        pat = re.compile(rf"\b{re.escape(kw)}\b", re.IGNORECASE)
-
-        def _nda_sub(m):
-            counters["NDA"] = counters.get("NDA", 0) + 1
-            ph = f"{prefix}[NDA_{counters['NDA']}]"
-            vault[f"[NDA_{counters['NDA']}]"] = m.group(0)
-            return ph
-
-        result = pat.sub(_nda_sub, result)
-
-    # Canonical patterns, in order
-    for entry in _PATTERNS:
-        label, group, pattern, validator, context_fn = entry
-        if group not in enabled_groups:
-            continue
-        counter = [counters.get(label, 0)]
-
-        def _sub(m, l=label, v=validator, cf=context_fn, c=counter):
-            if cf == "preserve_group1":
-                value = m.group(2)
-                if v and not v(value):
-                    return m.group(0)
-                c[0] += 1
-                counters[l] = c[0]
-                vault[f"[{l}_{c[0]}]"] = value
-                return f"{m.group(1)}{prefix}[{l}_{c[0]}]"
-            if cf == "preserve_conn":
-                c[0] += 1
-                counters[l] = c[0]
-                vault[f"[{l}_{c[0]}]"] = m.group(2)
-                return f"{m.group(1)}{prefix}[{l}_{c[0]}]{m.group(3)}"
-            match_str = m.group(0)
-            if v and not v(match_str):
-                return match_str
-            if callable(cf) and not cf(m, source):
-                return match_str
-            c[0] += 1
-            counters[l] = c[0]
-            vault[f"[{l}_{c[0]}]"] = match_str
-            return f"{prefix}[{l}_{c[0]}]"
-
-        result = pattern.sub(_sub, result)
-
-    return result, vault
+    result = protect_relay_text(
+        text, engine_shields, emoji=emoji, vault=vault, custom_terms=terms,
+    )
+    if result.get("blocked"):
+        raise _BulkBlocked(result)
+    return result["text"], vault
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -233,10 +219,11 @@ def main() -> None:
         prog="saferelay",
         description=(
             f"SafeRelay CLI v{__version__} — "
-            "53 canonical threat patterns across 10+ countries. "
+            f"8 shields, {len(PATTERN_TYPES)} canonical threat patterns. "
             "Zero-trust DLP for AI-assisted workflows. "
             "Free: DevSec Shield (API keys, cloud keys, IPs, crypto, env values). "
-            "Pro: FinTech / Corporate / Civic shields + reversible vault."
+            "Pro: FinTech / Corporate / Civic / Gov-CUI shields, bulk "
+            "exfiltration block, + reversible vault."
         ),
     )
     p.add_argument("input", nargs="?", type=argparse.FileType("r"), default=sys.stdin,
@@ -265,9 +252,17 @@ def main() -> None:
     p.add_argument("--no-fintech", action="store_true", help="Disable FinTech Shield.")
     p.add_argument("--no-corporate", action="store_true", help="Disable Corporate Shield.")
     p.add_argument("--no-civic", action="store_true", help="Disable Mission & Civic Shield.")
+    p.add_argument("--no-gov-cui", action="store_true", help="Disable Gov / CUI Shield.")
+    p.add_argument("--no-exfil", action="store_true",
+                   help="Disable the Exfiltration Shield bulk-relay block.")
     p.add_argument("--mask", action="store_true", help="Alias for default redact mode.")
 
     args = p.parse_args()
+
+    # Apply the --pro override BEFORE command dispatch so Pro-gated commands
+    # (e.g. --add-term) honour it, not just the redact path.
+    if args.pro:
+        is_pro = True
 
     # ── --unlock ──────────────────────────────────────────────────────────────
     if args.unlock:
@@ -300,9 +295,11 @@ def main() -> None:
         print(f"  FinTech   : {on if is_pro and cfg.get('fintech_shield') else off}")
         print(f"  Corporate : {on if is_pro and cfg.get('corporate_shield') else off}")
         print(f"  Civic     : {on if is_pro and cfg.get('civic_shield') else off}")
+        print(f"  Gov / CUI : {on if is_pro and cfg.get('gov_cui_shield') else off}")
+        print(f"  Exfil     : {on if is_pro and cfg.get('exfil_shield') else off}")
         kws = cfg.get("custom_keywords", [])
         print(f"  NDA terms : {len(kws)} ({', '.join(kws[:3])}{'…' if len(kws) > 3 else ''})")
-        print(f"  Patterns  : {len(PATTERN_TYPES)} canonical types")
+        print(f"  Patterns  : {len(PATTERN_TYPES)} canonical types, 8 shields")
         return
 
     # ── --clear-vault ─────────────────────────────────────────────────────────
@@ -369,6 +366,10 @@ def main() -> None:
         cfg["corporate_shield"] = False
     if args.no_civic:
         cfg["civic_shield"] = False
+    if args.no_gov_cui:
+        cfg["gov_cui_shield"] = False
+    if args.no_exfil:
+        cfg["exfil_shield"] = False
 
     # ── Read input ────────────────────────────────────────────────────────────
     try:
@@ -377,12 +378,30 @@ def main() -> None:
         sys.exit(0)
 
     # ── Redact ──────────────────────────────────────────────────────────────────
-    enabled = _enabled_groups(cfg, is_pro)
+    shields = _build_shields(cfg, is_pro)
     vault = _load_vault() if is_pro else {}
     custom = cfg.get("custom_keywords", []) if is_pro else []
     emoji = not args.no_emoji
 
-    redacted, vault = redact(text, enabled, vault, custom, emoji=emoji)
+    try:
+        redacted, vault = redact(text, shields, vault, custom, emoji=emoji)
+    except _BulkBlocked as blocked:
+        b = blocked.block
+        if b.get("errorCode") == "BULK_EXFILTRATION_RISK":
+            cats = ", ".join(b.get("categories", [])) or "bulk export"
+            print(
+                f"saferelay: ✗ BLOCKED — bulk exfiltration risk "
+                f"({cats}; {b.get('matchCount')} matches). "
+                f"Relay refused; no text emitted. Use --no-exfil to override.",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                f"saferelay: ✗ BLOCKED — protection engine error "
+                f"({b.get('errorCode')}). Relay refused (fail-closed).",
+                file=sys.stderr,
+            )
+        sys.exit(2)
 
     if is_pro:
         _save_vault(vault)
