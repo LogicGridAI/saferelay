@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 setup(
     name="saferelay",
-    version="3.7.0",
+    version="3.7.1",
     description="Local DLP for AI-era workflows — 8 shields incl. Gov/CUI + exfiltration, 50+ patterns",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",

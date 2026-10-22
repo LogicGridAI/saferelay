@@ -12,7 +12,7 @@ command, the SafeRelayClient class, and the Docker image all redact
 identically to the Browser Relay / Desktop engine. No drift.
 """
 from __future__ import annotations
-__version__ = "3.7.0"
+__version__ = "3.7.1"
 
 import argparse
 import json
